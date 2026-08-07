@@ -152,4 +152,6 @@ class GeminiProvider(BaseProvider):
             )
 
 
-gemini_provider = GeminiProvider()
+# Do not instantiate at import time.
+# Create GeminiProvider() where it is actually needed.
+gemini_provider = None
