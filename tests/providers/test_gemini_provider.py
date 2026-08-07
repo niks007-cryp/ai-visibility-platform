@@ -149,7 +149,7 @@ async def test_execute_job_with_gemini_provider(
         mock_model_cls.return_value = mock_model
 
         result = await analysis_job_service.execute_job(
-            db_session=db_session,
+            db=db_session,
             job_id=job.id,
             prompt="Top recommendations for 2026",
             provider=provider,
