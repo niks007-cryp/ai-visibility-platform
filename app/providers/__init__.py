@@ -1,6 +1,10 @@
 from app.providers.base import BaseProvider, ProviderOutput
 from app.providers.mock import MockProvider, mock_provider
-from app.providers.gemini import GeminiProvider, gemini_provider, GeminiNotConfiguredException, GeminiAPIException
+from app.providers.gemini import (
+    GeminiProvider,
+    GeminiNotConfiguredException,
+    GeminiAPIException,
+)
 
 __all__ = [
     "BaseProvider",
@@ -8,7 +12,6 @@ __all__ = [
     "MockProvider",
     "mock_provider",
     "GeminiProvider",
-    "gemini_provider",
     "GeminiNotConfiguredException",
     "GeminiAPIException",
 ]
