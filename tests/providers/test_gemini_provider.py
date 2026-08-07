@@ -12,9 +12,9 @@ from httpx import AsyncClient
 @pytest.mark.asyncio
 async def test_gemini_provider_unconfigured():
     """Test GeminiProvider raises GeminiNotConfiguredException when API key is missing."""
-    provider = GeminiProvider(api_key=None, model_name="gemini-1.5-flash")
+    provider = GeminiProvider(api_key=None, model_name="gemini-2.5-flash")
     assert provider.name == "gemini"
-    assert provider.model_name == "gemini-1.5-flash"
+    assert provider.model_name == "gemini-2.5-flash"
 
     with pytest.raises(GeminiNotConfiguredException):
         await provider.query(prompt="Test prompt", domain="testdomain.com")
@@ -26,7 +26,7 @@ async def test_gemini_provider_query_mocked_sdk():
     provider = GeminiProvider(api_key="mock_key_12345", model_name="gemini-1.5-flash")
     
     mock_response = MagicMock()
-    mock_response.text = "Simulated live Gemini 1.5 response output for testdomain.com."
+    mock_response.text = "Simulated live Gemini 2.5 response output for testdomain.com."
 
     with patch("google.generativeai.configure") as mock_config, \
          patch("google.generativeai.GenerativeModel") as mock_model_cls:
@@ -41,7 +41,7 @@ async def test_gemini_provider_query_mocked_sdk():
         mock_model_cls.assert_called_once_with("gemini-1.5-flash")
         assert isinstance(output, ProviderOutput)
         assert output.provider_name == "gemini"
-        assert "Simulated live Gemini 1.5 response" in output.raw_response
+        assert "Simulated live Gemini 2.5 response" in output.raw_response
 
 
 @pytest.mark.asyncio
@@ -56,7 +56,7 @@ async def test_execute_job_with_gemini_provider(async_client: AsyncClient, db_se
     job = await analysis_job_service.create_job(db_session, project_id=project_id)
 
     # 3. Instantiate GeminiProvider with mock key
-    gemini_inst = GeminiProvider(api_key="mock_test_key", model_name="gemini-1.5-flash")
+    gemini_inst = GeminiProvider(api_key="mock_test_key", model_name="gemini-2.5-flash")
 
     mock_resp = MagicMock()
     mock_resp.text = "Gemini AI recommendation text for gemini-test.com."
