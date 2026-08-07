@@ -67,9 +67,13 @@ async def run_async_migrations() -> None:
     """In this scenario we need to create an Engine
     and associate a connection with the context."""
 
-    configuration = config.get_section(config.config_ini_section, {})
-    url = config.get_main_option("sqlalchemy.url") or settings.async_database_url
-    configuration["sqlalchemy.url"] = url
+   configuration = config.get_section(
+    config.config_ini_section,
+    {},
+)
+
+# Always use DATABASE_URL from environment/settings
+configuration["sqlalchemy.url"] = settings.async_database_url
 
     connectable = async_engine_from_config(
         configuration,
