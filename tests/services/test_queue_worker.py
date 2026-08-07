@@ -61,8 +61,7 @@ async def test_worker_process_single_task(db_session):
     from app.repositories.project_repository import project_repository
 
     # Drain any lingering test queue items
-    while not queue_service._primary_queue.empty():
-        queue_service._primary_queue.get_nowait()
+    queue_service.reset()
 
     # Create project
     project = await project_repository.create(db_session, name="Worker Test Co", domain="workertest.io")

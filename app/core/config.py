@@ -29,6 +29,12 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://postgres:postgres_secret_password@localhost:5432/ai_visibility_db"
     )
 
+    # JWT Secret — inject via SECRET_KEY environment variable in production
+    SECRET_KEY: str = "production_super_secret_jwt_signing_key_change_in_env"
+
+    # Redis broker URL
+    REDIS_URL: Optional[str] = None
+
     # Gemini AI Provider configuration
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-1.5-flash"

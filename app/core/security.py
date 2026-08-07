@@ -6,7 +6,9 @@ import json
 from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, Optional
 
-SECRET_KEY = "production_super_secret_jwt_signing_key_change_in_env"
+from app.core.config import settings
+
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
