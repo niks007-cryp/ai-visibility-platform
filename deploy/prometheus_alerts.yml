@@ -1,0 +1,29 @@
+groups:
+  - name: ai_visibility_platform_alerts
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High HTTP 5xx error rate detected (>5%)"
+          description: "API server error rate has exceeded 5% over the last 2 minutes."
+
+      - alert: QueueBacklogHigh
+        expr: queue_depth > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High background task queue backlog"
+          description: "Task queue depth has exceeded 100 unprocessed items for 5 minutes."
+
+      - alert: RateLimitSpike
+        expr: rate(rate_limit_hits_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Rate limit hits spiking"
+          description: "Rate limiter hits exceeded 10 per minute."
