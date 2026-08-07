@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Production-grade backend infrastructure for AI Visibility Platform"
 readme = "README.md"
 requires-python = ">=3.12"
+
 dependencies = [
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.30.0",
@@ -24,8 +25,14 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.25.0"]
 build-backend = "hatchling.build"
+
+# -------------------------------
+# FIX FOR GITHUB ACTIONS
+# -------------------------------
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
