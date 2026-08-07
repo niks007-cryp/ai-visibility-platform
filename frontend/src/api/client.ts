@@ -1,4 +1,10 @@
-const BASE_URL = '/api/v1';
+const getBaseUrl = (): string => {
+  const rawUrl = import.meta.env.VITE_API_URL || '';
+  const cleanUrl = rawUrl.trim().replace(/\/+$/, '');
+  return cleanUrl ? `${cleanUrl}/api/v1` : '/api/v1';
+};
+
+const BASE_URL = getBaseUrl();
 
 export interface Project {
   id: string;
