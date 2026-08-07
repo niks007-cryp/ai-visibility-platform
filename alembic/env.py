@@ -44,6 +44,26 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
+    """Run migrations using DATABASE_URL from application settings."""
+
+    configuration = config.get_section(
+        config.config_ini_section,
+        {},
+    )
+
+    # Always use the application's configured database URL
+    configuration["sqlalchemy.url"] = settings.async_database_url
+
+    connectable = async_engine_from_config(
+        configuration,
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    async with connectable.connect() as connection:
+        await connection.run_sync(do_run_migrations)
+
+    await connectable.dispose()async def run_async_migrations() -> None:
     """In this scenario we need to create an Engine
     and associate a connection with the context."""
 
