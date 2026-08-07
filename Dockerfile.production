@@ -1,36 +1,6 @@
-# ============================
-# Production Multi-Stage Dockerfile
-# ============================
-
-FROM python:3.12-slim AS builder
-
-WORKDIR /app
-
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        gcc \
-        libpq-dev \
-        curl && \
-    rm -rf /var/lib/apt/lists/*
-
-#
-# Copy the ENTIRE project first
-#
-COPY . .
-
-#
-# Install package
-#
-RUN python -m pip install --upgrade pip && \
-    pip install --no-cache-dir -e ".[dev]"
-
-
-# ============================
-# Runtime Image
-# ============================
+# =====================================================
+# AI Visibility Platform - Production Docker Image
+# =====================================================
 
 FROM python:3.12-slim
 
@@ -38,41 +8,40 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV ENVIRONMENT=production
 
+# Install OS dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        libpq5 \
-        curl && \
+    gcc \
+    libpq-dev \
+    curl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN groupadd -g 10001 appgroup && \
-    useradd -u 10001 -g appgroup -m -s /bin/bash appuser
-
-#
-# Copy installed packages
-#
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
-
-#
-# Copy application
-#
+# Copy entire project
 COPY . .
 
+# Upgrade pip
+RUN python -m pip install --upgrade pip
+
+# Install application
+RUN pip install --no-cache-dir -e ".[dev]"
+
+# Make startup script executable
 RUN chmod +x start.sh
 
-RUN chown -R appuser:appgroup /app
+# Create non-root user
+RUN groupadd -r app && \
+    useradd -r -g app app
 
-USER appuser
+RUN chown -R app:app /app
+
+USER app
 
 EXPOSE 8000
 
-STOPSIGNAL SIGTERM
-
-HEALTHCHECK --interval=15s \
-             --timeout=5s \
-             --start-period=30s \
+HEALTHCHECK --interval=30s \
+             --timeout=10s \
+             --start-period=20s \
              --retries=3 \
 CMD curl -f http://localhost:8000/health || exit 1
 
