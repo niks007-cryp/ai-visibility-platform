@@ -53,15 +53,14 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(RequestCorrelationMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
-if settings.CORS_ORIGINS:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
-        allow_credentials=False,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        expose_headers=["*"],
-    )
+# CORS Middleware (Must be added last so it executes FIRST in ASGI pipeline)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Exception Handler
 app.add_exception_handler(Exception, global_exception_handler)
