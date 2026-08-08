@@ -89,10 +89,12 @@ class GeminiProvider(BaseProvider):
                 try:
                     model = genai.GenerativeModel(m_name)
 
-                    async def _call_gemini(mod=model):
-                        return await mod.generate_content_async(formatted_prompt)
+                    async def _call_mod(m=model):
+                        if hasattr(m, "generate_content_async"):
+                            return await m.generate_content_async(formatted_prompt)
+                        return await asyncio.to_thread(m.generate_content, formatted_prompt)
 
-                    response = await asyncio.wait_for(_call_gemini(), timeout=15.0)
+                    response = await asyncio.wait_for(_call_mod(), timeout=15.0)
                     used_model = m_name
                     break
                 except (Exception, asyncio.TimeoutError) as err:
