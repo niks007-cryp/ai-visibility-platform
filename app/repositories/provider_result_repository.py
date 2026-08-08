@@ -30,7 +30,7 @@ class ProviderResultRepository:
             prompt_category=prompt_category
         )
         db.add(db_obj)
-        await db.flush()
+        await db.commit()
         await db.refresh(db_obj)
         return db_obj
 

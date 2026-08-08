@@ -30,7 +30,7 @@ class ExtractedEvidenceRepository:
             extracted_brand_mentions=extracted_brand_mentions
         )
         db.add(db_obj)
-        await db.flush()
+        await db.commit()
         await db.refresh(db_obj)
         return db_obj
 

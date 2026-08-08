@@ -92,7 +92,7 @@ class AnalysisJobRepository:
                 db_obj.error_message = error_message
 
         db.add(db_obj)
-        await db.flush()
+        await db.commit()
         await db.refresh(db_obj)
         return db_obj
 
