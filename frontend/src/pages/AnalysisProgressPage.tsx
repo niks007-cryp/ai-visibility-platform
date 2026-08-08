@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,12 +12,23 @@ export const AnalysisProgressPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
 
+  const pollTimerRef = useRef<any>(null);
+  const isMountedRef = useRef<boolean>(true);
+  const consecutiveErrorsRef = useRef<number>(0);
+
   const statusMessages = [
     "Understanding how AI engines position your brand...",
     "Reviewing AI search recommendations...",
     "Identifying key brand mentions...",
     "Preparing your executive visibility report..."
   ];
+
+  const stopPolling = () => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -29,46 +40,51 @@ export const AnalysisProgressPage: React.FC = () => {
   useEffect(() => {
     if (!jobId) return;
 
-    let isSubscribed = true;
-    let pollInterval: any = null;
-    let consecutiveErrors = 0;
+    isMountedRef.current = true;
+    consecutiveErrorsRef.current = 0;
 
     const pollJobStatus = async () => {
+      if (!isMountedRef.current) return;
+
       try {
         const jobData = await api.getJob(jobId);
-        if (!isSubscribed) return;
+        if (!isMountedRef.current) return;
 
-        consecutiveErrors = 0;
+        consecutiveErrorsRef.current = 0;
         setJob(jobData);
 
         const currentStatus = (jobData.status || '').toString().toLowerCase();
 
         if (currentStatus === 'completed') {
-          if (pollInterval) clearInterval(pollInterval);
+          stopPolling();
           navigate(`/report/${jobId}`, { replace: true });
         } else if (currentStatus === 'failed') {
-          if (pollInterval) clearInterval(pollInterval);
+          stopPolling();
           setError(jobData.error_message || "Your analysis couldn't be completed. Please try again.");
         } else if (currentStatus === 'cancelled') {
-          if (pollInterval) clearInterval(pollInterval);
+          stopPolling();
           setError("This analysis was cancelled.");
         }
       } catch {
-        if (!isSubscribed) return;
-        consecutiveErrors += 1;
-        if (consecutiveErrors >= 5) {
-          if (pollInterval) clearInterval(pollInterval);
+        if (!isMountedRef.current) return;
+        consecutiveErrorsRef.current += 1;
+
+        if (consecutiveErrorsRef.current >= 5) {
+          stopPolling();
           setError("We couldn't reach the analysis server. Please check your connection.");
         }
       }
     };
 
+    // Immediate initial status check
     pollJobStatus();
-    pollInterval = setInterval(pollJobStatus, 2000);
+
+    // Schedule 2s polling interval
+    pollTimerRef.current = setInterval(pollJobStatus, 2000);
 
     return () => {
-      isSubscribed = false;
-      if (pollInterval) clearInterval(pollInterval);
+      isMountedRef.current = false;
+      stopPolling();
     };
   }, [jobId, navigate]);
 
