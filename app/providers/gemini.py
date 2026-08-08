@@ -28,6 +28,9 @@ class GeminiAPIException(Exception):
         super().__init__(f"Gemini API Error: {message}")
 
 
+_WORKING_MODEL_NAME: Optional[str] = None
+
+
 class GeminiProvider(BaseProvider):
     """Google Gemini AI Provider."""
 
@@ -45,13 +48,15 @@ class GeminiProvider(BaseProvider):
 
     @property
     def model_name(self) -> str:
-        return self._model_name
+        global _WORKING_MODEL_NAME
+        return _WORKING_MODEL_NAME or self._model_name
 
     async def query(
         self,
         prompt: str,
         domain: str,
     ) -> ProviderOutput:
+        global _WORKING_MODEL_NAME
 
         start_time = time.perf_counter()
 
@@ -70,19 +75,25 @@ class GeminiProvider(BaseProvider):
         logger.info(
             "event=gemini_query_start domain=%s model=%s prompt_len=%d",
             domain,
-            self._model_name,
+            self.model_name,
             len(formatted_prompt),
         )
 
         try:
             genai.configure(api_key=self._api_key)
 
-            candidate_models = [self._model_name, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"]
+            candidate_models = [
+                _WORKING_MODEL_NAME,
+                self._model_name,
+                "gemini-1.5-flash",
+                "gemini-2.0-flash",
+                "gemini-pro"
+            ]
             seen_models = set()
             models_to_try = [m for m in candidate_models if m and not (m in seen_models or seen_models.add(m))]
 
             response = None
-            used_model = self._model_name
+            used_model = self.model_name
             last_err = None
 
             for m_name in models_to_try:
@@ -94,8 +105,9 @@ class GeminiProvider(BaseProvider):
                             return await m.generate_content_async(formatted_prompt)
                         return await asyncio.to_thread(m.generate_content, formatted_prompt)
 
-                    response = await asyncio.wait_for(_call_mod(), timeout=15.0)
+                    response = await asyncio.wait_for(_call_mod(), timeout=10.0)
                     used_model = m_name
+                    _WORKING_MODEL_NAME = m_name
                     break
                 except (Exception, asyncio.TimeoutError) as err:
                     last_err = err

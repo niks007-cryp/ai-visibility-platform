@@ -166,11 +166,18 @@ class AnalysisJobService:
         provider: Optional[BaseProvider] = None
     ) -> ProviderResult:
         """Executes an Analysis Job across Prompt Evaluation Catalog templates and records ProviderResults and ExtractedEvidence."""
+        start_time = time.perf_counter()
+        logger.info("event=analysis_started job_id=%s timestamp=%.2f", job_id, start_time)
+
         job = await self.get_job(db, job_id=job_id)
         if job.status == AnalysisJobStatus.COMPLETED:
             logger.info("event=execute_job_skipped reason=already_completed job_id=%s", job_id)
             existing_results = await self.result_repo.list_by_job(db, job_id=job_id)
             return existing_results[0] if existing_results else None
+
+        if job.status == AnalysisJobStatus.FAILED:
+            logger.info("event=execute_job_skipped reason=already_failed job_id=%s", job_id)
+            return None
 
         if job.status != AnalysisJobStatus.RUNNING:
             await self.transition_job_status(db, job_id=job_id, target_status=AnalysisJobStatus.RUNNING)
@@ -180,19 +187,36 @@ class AnalysisJobService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
 
         target_provider = provider or self.provider
-
         active_prompts = self.prompts.list_active_prompts()
         primary_result: Optional[ProviderResult] = None
 
-        try:
+        logger.info(
+            "event=job_execution_started job_id=%s domain=%s prompts_count=%d",
+            job_id, project.domain, len(active_prompts)
+        )
+
+        async def _run_analysis():
+            nonlocal primary_result
             for p_template in active_prompts:
                 formatted_prompt = prompt or p_template.template.format(domain=project.domain)
+
+                p_start = time.perf_counter()
+                logger.info("event=provider_call_started job_id=%s prompt_id=%s", job_id, p_template.id)
 
                 try:
                     output = await target_provider.query(prompt=formatted_prompt, domain=project.domain)
                 except GeminiNotConfiguredException:
                     logger.warning("event=gemini_unconfigured fallback_to_mock job_id=%s", job_id)
                     output = await mock_provider.query(prompt=formatted_prompt, domain=project.domain)
+
+                p_elapsed = (time.perf_counter() - p_start) * 1000
+                logger.info(
+                    "event=gemini_response_received job_id=%s provider=%s elapsed_ms=%.2f",
+                    job_id, output.provider_name, p_elapsed
+                )
+
+                db_start = time.perf_counter()
+                logger.info("event=database_persistence_started job_id=%s", job_id)
 
                 result = await self.result_repo.create(
                     db,
@@ -217,16 +241,25 @@ class AnalysisJobService:
                     **evidence_payload
                 )
 
-        except Exception as exc:
+                db_elapsed = (time.perf_counter() - db_start) * 1000
+                logger.info("event=database_persistence_completed job_id=%s elapsed_ms=%.2f", job_id, db_elapsed)
+
+        try:
+            await asyncio.wait_for(_run_analysis(), timeout=25.0)
+        except (Exception, asyncio.TimeoutError) as exc:
+            err_msg = "Analysis execution timed out after 25s." if isinstance(exc, asyncio.TimeoutError) else str(exc)
+            logger.error("event=job_execution_failed job_id=%s error=%s", job_id, err_msg)
             await self.transition_job_status(
                 db,
                 job_id=job_id,
                 target_status=AnalysisJobStatus.FAILED,
-                error_message=str(exc)
+                error_message=err_msg
             )
             raise exc
 
         await self.transition_job_status(db, job_id=job_id, target_status=AnalysisJobStatus.COMPLETED)
+        total_elapsed = (time.perf_counter() - start_time) * 1000
+        logger.info("event=job_completed job_id=%s total_duration_ms=%.2f", job_id, total_elapsed)
         return primary_result
 
     async def get_evidence_for_job(

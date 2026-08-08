@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, CheckCircle2, AlertCircle, RefreshCw, Sparkles, ShieldCheck } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Loader2, AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api, AnalysisJob } from '../api/client';
 
 export const AnalysisProgressPage: React.FC = () => {
@@ -10,7 +10,21 @@ export const AnalysisProgressPage: React.FC = () => {
 
   const [job, setJob] = useState<AnalysisJob | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<number>(1);
+  const [msgIndex, setMsgIndex] = useState(0);
+
+  const statusMessages = [
+    "Understanding how AI engines position your brand...",
+    "Reviewing AI search recommendations...",
+    "Identifying key brand mentions...",
+    "Preparing your executive visibility report..."
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setMsgIndex((prev) => (prev + 1) % statusMessages.length);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!jobId) return;
@@ -26,26 +40,21 @@ export const AnalysisProgressPage: React.FC = () => {
         setJob(jobData);
 
         if (jobData.status === 'Completed') {
-          setStep(4);
           setTimeout(() => {
             navigate(`/report/${jobId}`);
-          }, 800);
+          }, 500);
         } else if (jobData.status === 'Failed') {
-          setError('Analysis encountered an issue. Click below to retry.');
-        } else if (jobData.status === 'Running') {
-          setStep(3);
-        } else if (jobData.status === 'Pending' || jobData.status === 'Queued') {
-          setStep(2);
+          setError("Your analysis couldn't be completed. Please try again.");
         }
       } catch {
         if (isSubscribed) {
-          setError('Unable to load analysis status. Please check your connection.');
+          setError("We couldn't reach the analysis server. Please check your connection.");
         }
       }
     };
 
     pollJobStatus();
-    pollInterval = setInterval(pollJobStatus, 1500);
+    pollInterval = setInterval(pollJobStatus, 2000);
 
     return () => {
       isSubscribed = false;
@@ -56,9 +65,8 @@ export const AnalysisProgressPage: React.FC = () => {
   const handleRetry = () => {
     if (!jobId) return;
     setError(null);
-    setStep(2);
     api.executeJob(jobId).catch(() => {
-      setError('Retry failed. Please try launching a new audit.');
+      setError("Retry request failed. Please try starting a new analysis.");
     });
   };
 
@@ -67,109 +75,67 @@ export const AnalysisProgressPage: React.FC = () => {
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className="max-w-xl mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center space-y-8"
+      className="max-w-lg mx-auto px-4 sm:px-6 py-16 sm:py-24 text-center space-y-8"
     >
       <div className="space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold">
-          <Sparkles className="w-3.5 h-3.5" /> Deterministic AI Engine
+          <Sparkles className="w-3.5 h-3.5" /> AI Intelligence Analysis
         </div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Analyzing AI Visibility...</h1>
-        <p className="text-slate-400 text-xs sm:text-sm">Evaluating brand recommendations across target AI search engines.</p>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          {error ? "Analysis Couldn't Be Completed" : "Analyzing Your AI Visibility"}
+        </h1>
+        <p className="text-slate-400 text-xs sm:text-sm">
+          {error
+            ? "Something went wrong while analyzing your brand across AI-powered answers."
+            : "We're reviewing how AI search engines recommend your brand."}
+        </p>
       </div>
 
-      <div className="glass-card p-6 sm:p-8 rounded-3xl space-y-8 text-left shadow-2xl border border-slate-800">
+      <div className="glass-card p-8 rounded-3xl space-y-6 border border-slate-800 shadow-2xl">
         {error ? (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-4 rounded-xl">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-4 rounded-xl text-left">
               <AlertCircle className="w-5 h-5 shrink-0" />
               <span>{error}</span>
             </div>
+
             <button
               onClick={handleRetry}
-              className="w-full inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 rounded-xl text-sm transition-all"
+              className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold py-3.5 rounded-xl text-sm transition-all shadow-lg shadow-cyan-500/20 active:scale-98"
             >
-              <RefreshCw className="w-4 h-4" /> Retry Analysis
+              <RefreshCw className="w-4 h-4" /> Try Again
             </button>
           </div>
         ) : (
-          <>
-            {/* Animated Progress Bar */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-semibold text-slate-400">
-                <span>Progress</span>
-                <span>{step === 1 ? '25%' : step === 2 ? '50%' : step === 3 ? '85%' : '100%'}</span>
-              </div>
-              <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                <motion.div
-                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full"
-                  animate={{ width: step === 1 ? '25%' : step === 2 ? '50%' : step === 3 ? '85%' : '100%' }}
-                  transition={{ duration: 0.5 }}
-                />
+          <div className="py-6 space-y-6">
+            {/* Minimal Pulse Loading Visual */}
+            <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-cyan-500/20 animate-ping" />
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                <Loader2 className="w-6 h-6 text-white animate-spin" />
               </div>
             </div>
 
-            {/* Stage Timeline */}
-            <div className="space-y-4 pt-2">
-              <TimelineStep
-                title="Preparing Analysis Parameters"
-                description="Validating domain context and evaluation prompt catalog"
-                isDone={step > 1}
-                isActive={step === 1}
-              />
-              <TimelineStep
-                title="Evaluating AI Search Providers"
-                description="Querying Google Gemini provider engine with automated model failover"
-                isDone={step > 2}
-                isActive={step === 2}
-              />
-              <TimelineStep
-                title="Extracting Factual Evidence"
-                description="Parsing brand presence, URL citations, and verbatim quote snippets"
-                isDone={step > 3}
-                isActive={step === 3}
-              />
-              <TimelineStep
-                title="Finalizing Executive Report"
-                description="Assembling confidence scores and strategic recommendations"
-                isDone={step >= 4}
-                isActive={step === 4}
-              />
+            {/* Rotating High-Level Contextual Copy */}
+            <div className="h-8 flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={msgIndex}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.25 }}
+                  className="text-sm font-medium text-slate-300"
+                >
+                  {statusMessages[msgIndex]}
+                </motion.p>
+              </AnimatePresence>
             </div>
-          </>
+
+            <p className="text-xs text-slate-500">This usually takes a short while. Please keep this window open.</p>
+          </div>
         )}
-      </div>
-
-      <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
-        <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-        <span>Deterministic AI Evaluation Pipeline</span>
       </div>
     </motion.div>
-  );
-};
-
-interface TimelineStepProps {
-  title: string;
-  description: string;
-  isDone: boolean;
-  isActive: boolean;
-}
-
-const TimelineStep: React.FC<TimelineStepProps> = ({ title, description, isDone, isActive }) => {
-  return (
-    <div className="flex items-start gap-4">
-      <div className="mt-0.5 shrink-0">
-        {isDone ? (
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-        ) : isActive ? (
-          <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
-        ) : (
-          <div className="w-5 h-5 rounded-full border-2 border-slate-800 bg-slate-900" />
-        )}
-      </div>
-      <div>
-        <h4 className={`text-sm font-semibold ${isDone || isActive ? 'text-white' : 'text-slate-600'}`}>{title}</h4>
-        <p className="text-xs text-slate-500 mt-0.5">{description}</p>
-      </div>
-    </div>
   );
 };
