@@ -77,20 +77,37 @@ class GeminiProvider(BaseProvider):
         try:
             genai.configure(api_key=self._api_key)
 
-            model = genai.GenerativeModel(self._model_name)
+            candidate_models = [self._model_name, "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"]
+            seen_models = set()
+            models_to_try = [m for m in candidate_models if m and not (m in seen_models or seen_models.add(m))]
 
-            async def _call_gemini():
-                return await model.generate_content_async(
-                    formatted_prompt
-                )
+            response = None
+            used_model = self._model_name
+            last_err = None
 
-            response = await asyncio.wait_for(
-                _call_gemini(),
-                timeout=15.0,
-            )
+            for m_name in models_to_try:
+                try:
+                    model = genai.GenerativeModel(m_name)
+
+                    async def _call_gemini(mod=model):
+                        return await mod.generate_content_async(formatted_prompt)
+
+                    response = await asyncio.wait_for(_call_gemini(), timeout=15.0)
+                    used_model = m_name
+                    break
+                except (Exception, asyncio.TimeoutError) as err:
+                    last_err = err
+                    err_str = str(err).lower()
+                    if "404" in err_str or "not found" in err_str or "invalid" in err_str:
+                        logger.warning("event=gemini_model_not_found model=%s domain=%s trying_next", m_name, domain)
+                        continue
+                    else:
+                        raise err
+
+            if response is None and last_err:
+                raise last_err
 
             raw_text = getattr(response, "text", None)
-
             if not raw_text:
                 raw_text = str(response)
 

@@ -167,14 +167,19 @@ class AnalysisJobService:
     ) -> ProviderResult:
         """Executes an Analysis Job across Prompt Evaluation Catalog templates and records ProviderResults and ExtractedEvidence."""
         job = await self.get_job(db, job_id=job_id)
+        if job.status == AnalysisJobStatus.COMPLETED:
+            logger.info("event=execute_job_skipped reason=already_completed job_id=%s", job_id)
+            existing_results = await self.result_repo.list_by_job(db, job_id=job_id)
+            return existing_results[0] if existing_results else None
+
+        if job.status != AnalysisJobStatus.RUNNING:
+            await self.transition_job_status(db, job_id=job_id, target_status=AnalysisJobStatus.RUNNING)
+
         project = await self.project_repo.get_by_id(db, project_id=job.project_id)
         if not project:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
 
         target_provider = provider or self.provider
-
-        # Move Pending -> Running
-        await self.transition_job_status(db, job_id=job_id, target_status=AnalysisJobStatus.RUNNING)
 
         active_prompts = self.prompts.list_active_prompts()
         primary_result: Optional[ProviderResult] = None

@@ -94,7 +94,7 @@ export const ReportPage: React.FC = () => {
           <div className="space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Target Website Domain</span>
             <h1 className="text-3xl font-extrabold text-white tracking-tight">{report.target_domain}</h1>
-            <p className="text-xs text-slate-500">Project: {report.project_name} | Job ID: {report.job_id.slice(0, 8)}...</p>
+            <p className="text-xs text-slate-400">Project: <span className="text-white font-medium">{report.project_name}</span> &bull; Audit Reference: <span className="font-mono text-slate-300">#{report.job_id.slice(0, 8)}</span></p>
           </div>
 
           <div>

@@ -94,6 +94,16 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Failed to trigger analysis job' }));
+      if (res.status === 409) {
+        try {
+          const jobs = await this.listJobsForProject(projectId);
+          const active = jobs.find(j => j.status === 'Pending' || j.status === 'Running' || j.status === 'Queued');
+          if (active) return active;
+          if (jobs.length > 0) return jobs[0];
+        } catch {
+          // Fall through
+        }
+      }
       throw new Error(err.detail || 'Failed to trigger analysis job');
     }
     return res.json();
@@ -137,6 +147,22 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Failed to fetch evaluation summary' }));
       throw new Error(err.detail || 'Failed to fetch evaluation summary');
+    }
+    return res.json();
+  },
+
+  async listProjects(): Promise<Project[]> {
+    const res = await fetch(`${BASE_URL}/projects`);
+    if (!res.ok) {
+      throw new Error('Failed to fetch projects list');
+    }
+    return res.json();
+  },
+
+  async listJobsForProject(projectId: string): Promise<AnalysisJob[]> {
+    const res = await fetch(`${BASE_URL}/projects/${projectId}/jobs`);
+    if (!res.ok) {
+      throw new Error('Failed to fetch jobs for project');
     }
     return res.json();
   },

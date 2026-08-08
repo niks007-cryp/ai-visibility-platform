@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, CheckCircle2, AlertCircle, RefreshCw, Sparkles, Terminal } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, RefreshCw, Sparkles, ShieldCheck } from 'lucide-react';
 import { api, AnalysisJob } from '../api/client';
 
 export const AnalysisProgressPage: React.FC = () => {
@@ -10,7 +10,6 @@ export const AnalysisProgressPage: React.FC = () => {
   const [job, setJob] = useState<AnalysisJob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<number>(1);
-  const [isExecuting, setIsExecuting] = useState(false);
 
   useEffect(() => {
     if (!jobId) return;
@@ -31,19 +30,16 @@ export const AnalysisProgressPage: React.FC = () => {
             navigate(`/report/${jobId}`);
           }, 800);
         } else if (jobData.status === 'Failed') {
-          setError(jobData.error_message || 'Analysis job failed.');
+          setError('Analysis encountered an issue. Click below to retry.');
         } else if (jobData.status === 'Running') {
           setStep(3);
-        } else if ((jobData.status === 'Pending' || jobData.status === 'Queued') && !isExecuting) {
-          setIsExecuting(true);
+        } else if (jobData.status === 'Pending' || jobData.status === 'Queued') {
           setStep(2);
-          // Automatically trigger execution
-          api.executeJob(jobId).catch((err) => {
-            if (isSubscribed) setError(err.message || 'Execution failed.');
-          });
         }
-      } catch (err: any) {
-        if (isSubscribed) setError(err.message || 'Failed to check job status.');
+      } catch {
+        if (isSubscribed) {
+          setError('Unable to load analysis status. Please check your connection.');
+        }
       }
     };
 
@@ -54,18 +50,18 @@ export const AnalysisProgressPage: React.FC = () => {
       isSubscribed = false;
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [jobId, navigate, isExecuting]);
+  }, [jobId, navigate]);
 
   const handleRetry = () => {
     if (!jobId) return;
     setError(null);
-    setIsExecuting(true);
     setStep(2);
-    api.executeJob(jobId).catch((err) => {
-      setError(err.message || 'Retry failed.');
-      setIsExecuting(false);
+    api.executeJob(jobId).catch(() => {
+      setError('Retry failed. Please try launching a new audit.');
     });
   };
+
+  const shortRef = jobId ? `#${jobId.slice(0, 8)}` : '';
 
   return (
     <div className="max-w-xl mx-auto px-6 py-16 text-center space-y-8">
@@ -74,10 +70,10 @@ export const AnalysisProgressPage: React.FC = () => {
           <Sparkles className="w-3.5 h-3.5" /> Deterministic Pipeline Active
         </div>
         <h1 className="text-3xl font-extrabold text-white tracking-tight">Analyzing AI Visibility...</h1>
-        <p className="text-slate-400 text-sm">Querying AI providers and parsing factual recommendations.</p>
+        <p className="text-slate-400 text-sm">Evaluating brand recommendations across AI search engines.</p>
       </div>
 
-      <div className="glass-card p-8 rounded-3xl space-y-8 text-left shadow-2xl">
+      <div className="glass-card p-8 rounded-3xl space-y-8 text-left shadow-2xl border border-slate-800">
         {error ? (
           <div className="space-y-4">
             <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-4 rounded-xl">
@@ -110,14 +106,14 @@ export const AnalysisProgressPage: React.FC = () => {
             {/* Stage Timeline */}
             <div className="space-y-4 pt-2">
               <TimelineStep
-                title="Initializing Analysis Job"
-                description="Creating project context and verifying domain parameters"
+                title="Preparing Analysis Parameters"
+                description="Validating domain context and evaluation prompt catalog"
                 isDone={step > 1}
                 isActive={step === 1}
               />
               <TimelineStep
-                title="Querying Google Gemini AI Provider"
-                description="Executing prompt against gemini-1.5-flash with 15s timeout"
+                title="Evaluating AI Search Providers"
+                description="Querying Google Gemini provider engine with automated model failover"
                 isDone={step > 2}
                 isActive={step === 2}
               />
@@ -128,8 +124,8 @@ export const AnalysisProgressPage: React.FC = () => {
                 isActive={step === 3}
               />
               <TimelineStep
-                title="Assembling Unified MVP Report"
-                description="Finalizing frontend-ready report payload"
+                title="Finalizing Executive Report"
+                description="Assembling confidence scores and strategic recommendations"
                 isDone={step >= 4}
                 isActive={step === 4}
               />
@@ -139,8 +135,8 @@ export const AnalysisProgressPage: React.FC = () => {
       </div>
 
       <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
-        <Terminal className="w-3.5 h-3.5 text-cyan-400" />
-        <span>Job ID: {jobId}</span>
+        <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+        <span>Audit Reference {shortRef}</span>
       </div>
     </div>
   );

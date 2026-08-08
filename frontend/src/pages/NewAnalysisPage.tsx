@@ -135,6 +135,15 @@ export const NewAnalysisPage: React.FC = () => {
           </button>
         </form>
       </div>
+
+      <div className="text-center pt-2">
+        <button
+          onClick={() => navigate('/projects')}
+          className="text-xs text-slate-400 hover:text-cyan-400 font-medium inline-flex items-center gap-1.5 transition-colors"
+        >
+          <Building2 className="w-3.5 h-3.5" /> View All Previously Audited Projects & Reports &rarr;
+        </button>
+      </div>
     </div>
   );
 };
