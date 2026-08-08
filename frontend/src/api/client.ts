@@ -110,7 +110,13 @@ export const api = {
   },
 
   async getJob(jobId: string): Promise<AnalysisJob> {
-    const res = await fetch(`${BASE_URL}/jobs/${jobId}`);
+    const res = await fetch(`${BASE_URL}/jobs/${jobId}?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      },
+    });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Failed to fetch job status' }));
       throw new Error(err.detail || 'Failed to fetch job status');

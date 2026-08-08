@@ -31,23 +31,33 @@ export const AnalysisProgressPage: React.FC = () => {
 
     let isSubscribed = true;
     let pollInterval: any = null;
+    let consecutiveErrors = 0;
 
     const pollJobStatus = async () => {
       try {
         const jobData = await api.getJob(jobId);
         if (!isSubscribed) return;
 
+        consecutiveErrors = 0;
         setJob(jobData);
 
-        if (jobData.status === 'Completed') {
-          setTimeout(() => {
-            navigate(`/report/${jobId}`);
-          }, 500);
-        } else if (jobData.status === 'Failed') {
-          setError("Your analysis couldn't be completed. Please try again.");
+        const currentStatus = (jobData.status || '').toString().toLowerCase();
+
+        if (currentStatus === 'completed') {
+          if (pollInterval) clearInterval(pollInterval);
+          navigate(`/report/${jobId}`, { replace: true });
+        } else if (currentStatus === 'failed') {
+          if (pollInterval) clearInterval(pollInterval);
+          setError(jobData.error_message || "Your analysis couldn't be completed. Please try again.");
+        } else if (currentStatus === 'cancelled') {
+          if (pollInterval) clearInterval(pollInterval);
+          setError("This analysis was cancelled.");
         }
       } catch {
-        if (isSubscribed) {
+        if (!isSubscribed) return;
+        consecutiveErrors += 1;
+        if (consecutiveErrors >= 5) {
+          if (pollInterval) clearInterval(pollInterval);
           setError("We couldn't reach the analysis server. Please check your connection.");
         }
       }
