@@ -3,6 +3,7 @@ import uuid
 import pytest
 from httpx import AsyncClient
 from app.core.rate_limiter import rate_limiter
+from tests.helpers import FakeGeminiProvider
 
 
 def test_github_release_artifacts_exist():
@@ -48,9 +49,9 @@ async def test_full_production_system_e2e_verification(async_client: AsyncClient
     job_id_str = job_res.json()["id"]
     job_id = uuid.UUID(job_id_str)
 
-    # 5. Execute Job Pipeline (Mocking Worker Process)
+    # 5. Execute Job Pipeline (Mocking Worker Process with FakeGeminiProvider)
     from app.services.analysis_job_service import analysis_job_service
-    await analysis_job_service.execute_job(db_session, job_id=job_id)
+    await analysis_job_service.execute_job(db_session, job_id=job_id, provider=FakeGeminiProvider())
 
     # 6. Fetch Completed Report
     report_res = await async_client.get(f"/api/v1/jobs/{job_id}/report", headers=headers)

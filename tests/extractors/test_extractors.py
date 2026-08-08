@@ -6,6 +6,7 @@ from app.extractors.citation import CitationExtractor
 from app.extractors.snippet import SnippetExtractor
 from app.services.evidence_pipeline import EvidencePipeline
 from app.services.analysis_job_service import analysis_job_service
+from tests.helpers import FakeGeminiProvider
 
 
 def test_brand_mention_extractor():
@@ -71,11 +72,11 @@ async def test_evidence_api_endpoint(async_client: AsyncClient, db_session):
     # 2. Trigger job
     job = await analysis_job_service.create_job(db_session, project_id=project_id)
 
-    # 3. Execute job (runs EvidencePipeline across prompt evaluation catalog)
+    # 3. Execute job with FakeGeminiProvider (structured single-request pipeline)
     await analysis_job_service.execute_job(
         db_session,
         job_id=job.id,
-        prompt="Recommend modern workflow automation tools"
+        provider=FakeGeminiProvider()
     )
 
     # 4. Query GET /jobs/{job_id}/evidence endpoint

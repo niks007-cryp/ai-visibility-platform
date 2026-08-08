@@ -4,6 +4,7 @@ from httpx import AsyncClient
 from app.schemas.evaluation import ConfidenceLevel
 from app.services.evaluation_service import evaluation_service
 from app.services.analysis_job_service import analysis_job_service
+from tests.helpers import FakeGeminiProvider
 
 
 @pytest.mark.asyncio
@@ -17,14 +18,15 @@ async def test_evaluation_summary_calculation(async_client: AsyncClient, db_sess
     # 2. Trigger job
     job = await analysis_job_service.create_job(db_session, project_id=project_id)
 
-    # 3. Execute job across catalog prompts
-    await analysis_job_service.execute_job(db_session, job_id=job.id)
+    # 3. Execute job with structured single-request pipeline
+    await analysis_job_service.execute_job(db_session, job_id=job.id, provider=FakeGeminiProvider())
 
     # 4. Calculate evaluation summary
     summary = await evaluation_service.get_evaluation_summary(db_session, job_id=job.id)
 
     assert summary.job_id == job.id
-    assert summary.total_prompts >= 4
+    # 1 structured result = 1 provider result record
+    assert summary.total_prompts >= 1
     assert summary.consistency_percentage == 100.0
     assert summary.confidence_level == ConfidenceLevel.HIGH
     assert len(summary.contradictions) == 0
@@ -42,7 +44,7 @@ async def test_evaluation_api_endpoint(async_client: AsyncClient, db_session):
     job = await analysis_job_service.create_job(db_session, project_id=project_id)
 
     # 3. Execute job
-    await analysis_job_service.execute_job(db_session, job_id=job.id)
+    await analysis_job_service.execute_job(db_session, job_id=job.id, provider=FakeGeminiProvider())
 
     # 4. Query GET /jobs/{job_id}/evaluation
     res = await async_client.get(f"/api/v1/jobs/{job.id}/evaluation")

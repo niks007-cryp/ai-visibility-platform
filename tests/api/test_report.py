@@ -3,6 +3,7 @@ import uuid
 from httpx import AsyncClient
 from app.services.analysis_job_service import analysis_job_service
 from app.models.analysis_job import AnalysisJobStatus
+from tests.helpers import FakeGeminiProvider
 
 
 @pytest.mark.asyncio
@@ -20,7 +21,7 @@ async def test_get_job_report_success(async_client: AsyncClient, db_session):
     await analysis_job_service.execute_job(
         db_session,
         job_id=job.id,
-        prompt="Top tools for developer productivity 2026"
+        provider=FakeGeminiProvider()
     )
 
     # 4. Query GET /jobs/{job_id}/report endpoint
@@ -33,8 +34,9 @@ async def test_get_job_report_success(async_client: AsyncClient, db_session):
     assert data["project_name"] == "Report Test Co"
     assert data["target_domain"] == "reporttest.io"
     assert data["job_status"] == AnalysisJobStatus.COMPLETED.value
-    assert data["provider_name"] == "mock"
-    assert "reporttest.io" in data["raw_response"]
+    assert data["provider_name"] == "gemini"
+    # raw_response is scorecard summary containing domain or brand
+    assert "reporttest.io" in data["raw_response"] or "Reporttest" in data["raw_response"]
     assert data["mentioned"] is True
     assert isinstance(data["raw_citations"], list)
     assert isinstance(data["matched_snippets"], list)

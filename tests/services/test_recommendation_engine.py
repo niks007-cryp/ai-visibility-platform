@@ -6,6 +6,7 @@ from app.models.extracted_evidence import ExtractedEvidence
 from app.schemas.recommendation import PriorityLevel
 from app.services.recommendation_engine import RecommendationRuleEngine
 from app.services.analysis_job_service import analysis_job_service
+from tests.helpers import FakeGeminiProvider
 
 
 def test_recommendation_rule_engine_omitted_case():
@@ -62,7 +63,7 @@ async def test_recommendations_api_endpoint(async_client: AsyncClient, db_sessio
     await analysis_job_service.execute_job(
         db_session,
         job_id=job.id,
-        prompt="Top workflow management software"
+        provider=FakeGeminiProvider()
     )
 
     # 4. Query GET /jobs/{job_id}/recommendations endpoint

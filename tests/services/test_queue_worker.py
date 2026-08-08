@@ -3,6 +3,7 @@ import uuid
 from httpx import AsyncClient
 from app.services.queue_service import QueueService, queue_service
 from app.worker import AnalysisWorker
+from tests.helpers import FakeGeminiProvider
 
 
 @pytest.mark.asyncio
@@ -76,8 +77,8 @@ async def test_worker_process_single_task(db_session):
     assert payload is not None
     assert payload["job_id"] == str(job.id)
 
-    # Execute via job_service directly
-    await analysis_job_service.execute_job(db_session, job_id=job.id)
+    # Execute via job_service directly with FakeGeminiProvider
+    await analysis_job_service.execute_job(db_session, job_id=job.id, provider=FakeGeminiProvider())
     worker.queue.record_success(payload)
 
     telemetry = worker.queue.get_telemetry()
