@@ -47,7 +47,7 @@ async def test_gemini_provider_unconfigured(monkeypatch):
 async def test_gemini_provider_query_mocked_sdk():
     """
     Test GeminiProvider executes successfully
-    using mocked Gemini SDK.
+    using mocked Google GenAI SDK.
     """
 
     provider = GeminiProvider(
@@ -60,31 +60,24 @@ async def test_gemini_provider_query_mocked_sdk():
         "Simulated Gemini 2.5 Flash response."
     )
 
-    with patch(
-        "google.generativeai.configure"
-    ) as mock_config, patch(
-        "google.generativeai.GenerativeModel"
-    ) as mock_model_cls:
-
-        mock_model = MagicMock()
-
-        mock_model.generate_content_async = AsyncMock(
+    with patch("google.genai.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = AsyncMock(
             return_value=mock_response
         )
-
-        mock_model_cls.return_value = mock_model
+        mock_client_cls.return_value = mock_client
 
         output = await provider.query(
             prompt="Recommend accounting software",
             domain="testdomain.com",
         )
 
-        mock_config.assert_called_once_with(
+        mock_client_cls.assert_called_once_with(
             api_key="mock_key_12345"
         )
-
-        mock_model_cls.assert_called_once_with(
-            "gemini-2.5-flash"
+        mock_client.aio.models.generate_content.assert_called_once_with(
+            model="gemini-2.5-flash",
+            contents="Analyze visibility and recommendations for business website 'testdomain.com'. Query: Recommend accounting software"
         )
 
         assert isinstance(output, ProviderOutput)
@@ -134,19 +127,12 @@ async def test_execute_job_with_gemini_provider(
         "Gemini AI recommendation text for gemini-test.com."
     )
 
-    with patch(
-        "google.generativeai.configure"
-    ), patch(
-        "google.generativeai.GenerativeModel"
-    ) as mock_model_cls:
-
-        mock_model = MagicMock()
-
-        mock_model.generate_content_async = AsyncMock(
+    with patch("google.genai.Client") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.aio.models.generate_content = AsyncMock(
             return_value=mock_response
         )
-
-        mock_model_cls.return_value = mock_model
+        mock_client_cls.return_value = mock_client
 
         result = await analysis_job_service.execute_job(
             db=db_session,

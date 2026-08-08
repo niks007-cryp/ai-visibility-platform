@@ -3,7 +3,7 @@ import logging
 import time
 from typing import Optional
 
-import google.generativeai as genai
+from google import genai
 
 from app.core.config import settings
 from app.providers.base import BaseProvider, ProviderOutput
@@ -28,11 +28,8 @@ class GeminiAPIException(Exception):
         super().__init__(f"Gemini API Error: {message}")
 
 
-_WORKING_MODEL_NAME: Optional[str] = None
-
-
 class GeminiProvider(BaseProvider):
-    """Google Gemini AI Provider."""
+    """Google Gemini AI Provider using official google-genai SDK."""
 
     def __init__(
         self,
@@ -40,7 +37,7 @@ class GeminiProvider(BaseProvider):
         model_name: Optional[str] = None,
     ):
         self._api_key = api_key or settings.GEMINI_API_KEY
-        self._model_name = model_name or settings.GEMINI_MODEL
+        self._model_name = model_name or settings.GEMINI_MODEL or "gemini-2.5-flash"
 
     @property
     def name(self) -> str:
@@ -48,16 +45,13 @@ class GeminiProvider(BaseProvider):
 
     @property
     def model_name(self) -> str:
-        global _WORKING_MODEL_NAME
-        return _WORKING_MODEL_NAME or self._model_name
+        return "gemini-2.5-flash"
 
     async def query(
         self,
         prompt: str,
         domain: str,
     ) -> ProviderOutput:
-        global _WORKING_MODEL_NAME
-
         start_time = time.perf_counter()
 
         if self._api_key is None or self._api_key.strip() == "":
@@ -72,69 +66,36 @@ class GeminiProvider(BaseProvider):
             f"'{domain}'. Query: {prompt}"
         )
 
+        target_model = "gemini-2.5-flash"
+
         logger.info(
-            "event=gemini_query_start domain=%s model=%s prompt_len=%d",
+            "GEMINI_REQUEST provider=gemini model=%s domain=%s prompt_len=%d",
+            target_model,
             domain,
-            self.model_name,
             len(formatted_prompt),
         )
 
         try:
-            genai.configure(api_key=self._api_key)
+            client = genai.Client(api_key=self._api_key)
 
-            candidate_models = [
-                _WORKING_MODEL_NAME,
-                self._model_name,
-                "gemini-2.0-flash",
-                "gemini-1.5-flash",
-                "gemini-1.5-pro",
-                "gemini-pro"
-            ]
-            seen_models = set()
-            models_to_try = [m for m in candidate_models if m and not (m in seen_models or seen_models.add(m))]
+            async def _call_gemini_api():
+                return await client.aio.models.generate_content(
+                    model=target_model,
+                    contents=formatted_prompt
+                )
 
-            response = None
-            used_model = self.model_name
-            last_err = None
-
-            for m_name in models_to_try:
-                try:
-                    model = genai.GenerativeModel(m_name)
-
-                    async def _call_mod(m=model):
-                        if hasattr(m, "generate_content_async"):
-                            return await m.generate_content_async(formatted_prompt)
-                        return await asyncio.to_thread(m.generate_content, formatted_prompt)
-
-                    response = await asyncio.wait_for(_call_mod(), timeout=10.0)
-                    used_model = m_name
-                    _WORKING_MODEL_NAME = m_name
-                    break
-                except (Exception, asyncio.TimeoutError) as err:
-                    last_err = err
-                    err_str = str(err).lower()
-                    if "404" in err_str or "not found" in err_str or "invalid" in err_str:
-                        logger.warning("event=gemini_model_not_found model=%s domain=%s trying_next", m_name, domain)
-                        continue
-                    else:
-                        raise err
-
-            if response is None and last_err:
-                raise last_err
+            response = await asyncio.wait_for(_call_gemini_api(), timeout=15.0)
 
             raw_text = getattr(response, "text", None)
             if not raw_text:
                 raw_text = str(response)
 
-            elapsed_ms = (
-                time.perf_counter() - start_time
-            ) * 1000
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
 
             logger.info(
-                "event=gemini_query_success "
-                "domain=%s model=%s response_len=%d latency_ms=%.2f",
+                "GEMINI_RESPONSE provider=gemini model=%s domain=%s response_len=%d duration_ms=%.2f",
+                target_model,
                 domain,
-                self._model_name,
                 len(raw_text),
                 elapsed_ms,
             )
@@ -147,43 +108,29 @@ class GeminiProvider(BaseProvider):
 
         except asyncio.TimeoutError:
             logger.error(
-                "event=gemini_query_error domain=%s error=timeout_15s",
-                domain,
+                "GEMINI_ERROR provider=gemini model=%s error_type=TimeoutError error=timeout_15s",
+                target_model,
             )
-
             raise GeminiAPIException(
-                "Request to Gemini API timed out after 15 seconds.",
+                "Request to Gemini 2.5 Flash timed out after 15 seconds.",
                 is_retryable=True,
             )
 
         except Exception as exc:
             err_msg = str(exc)
-
-            retryable_errors = (
-                "429",
-                "503",
-                "ResourceExhausted",
-            )
-
-            is_retryable = any(
-                error in err_msg
-                for error in retryable_errors
-            )
+            err_type = type(exc).__name__
 
             logger.error(
-                "event=gemini_query_error "
-                "domain=%s error=%s retryable=%s",
-                domain,
+                "GEMINI_ERROR provider=gemini model=%s error_type=%s error=%s",
+                target_model,
+                err_type,
                 err_msg,
-                is_retryable,
             )
 
             raise GeminiAPIException(
                 err_msg,
-                is_retryable=is_retryable,
+                is_retryable="429" in err_msg or "503" in err_msg,
             )
 
 
-# Do not instantiate at import time.
-# Create GeminiProvider() where it is actually needed.
 gemini_provider = None

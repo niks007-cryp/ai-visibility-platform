@@ -206,8 +206,8 @@ class AnalysisJobService:
 
                 try:
                     output = await target_provider.query(prompt=formatted_prompt, domain=project.domain)
-                except GeminiNotConfiguredException:
-                    logger.warning("event=gemini_unconfigured fallback_to_mock job_id=%s", job_id)
+                except Exception as p_err:
+                    logger.warning("event=provider_query_failed error=%s fallback_to_mock job_id=%s", p_err, job_id)
                     output = await mock_provider.query(prompt=formatted_prompt, domain=project.domain)
 
                 p_elapsed = (time.perf_counter() - p_start) * 1000
