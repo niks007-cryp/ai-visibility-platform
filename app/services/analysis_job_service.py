@@ -5,6 +5,7 @@ import asyncio
 from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.config import settings
 
 from app.models.analysis_job import AnalysisJob, AnalysisJobStatus
 from app.models.provider_result import ProviderResult
@@ -15,7 +16,7 @@ from app.repositories.provider_result_repository import provider_result_reposito
 from app.repositories.extracted_evidence_repository import extracted_evidence_repository, ExtractedEvidenceRepository
 from app.providers.base import BaseProvider
 from app.providers.mock import mock_provider
-from app.providers.gemini import gemini_provider, GeminiNotConfiguredException
+from app.providers.gemini import GeminiProvider, GeminiNotConfiguredException
 from app.services.state_machine import JobStateMachine, InvalidStateTransitionException
 from app.services.evidence_pipeline import evidence_pipeline, EvidencePipeline
 from app.services.prompt_service import prompt_service, PromptService
@@ -43,11 +44,17 @@ class AnalysisJobService:
         self.project_repo = project_repo
         self.result_repo = result_repo
         self.evidence_repo = evidence_repo
-        self.provider = provider
+        self._provider = provider
         self.pipeline = pipeline
         self.prompts = prompts
         self.queue = queue
         self.state_machine = state_machine
+
+    @property
+    def provider(self) -> BaseProvider:
+        if settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip():
+            return GeminiProvider(api_key=settings.GEMINI_API_KEY, model_name=settings.GEMINI_MODEL)
+        return self._provider or mock_provider
 
     async def create_job(
         self,
