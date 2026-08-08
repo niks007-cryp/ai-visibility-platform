@@ -19,6 +19,7 @@ class Project(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     domain: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
     
     # Ownership
     owner_id: Mapped[Optional[uuid.UUID]] = mapped_column(

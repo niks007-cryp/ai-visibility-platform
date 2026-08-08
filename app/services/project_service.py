@@ -49,6 +49,7 @@ class ProjectService:
             db,
             name=name_str,
             domain=normalized_domain,
+            url=payload.url,
             owner_id=owner_id
         )
         elapsed_ms = (time.perf_counter() - start_time) * 1000

@@ -14,11 +14,14 @@ class ProjectRepository:
         *,
         name: str,
         domain: str,
+        url: Optional[str] = None,
         owner_id: Optional[uuid.UUID] = None
     ) -> Project:
+        url_val = f"https://{domain}"
         db_obj = Project(
             name=name,
             domain=domain,
+            url=url_val,
             owner_id=owner_id
         )
         db.add(db_obj)
