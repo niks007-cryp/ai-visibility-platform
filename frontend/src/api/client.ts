@@ -1,7 +1,17 @@
+const PRODUCTION_RAILWAY_URL = 'https://ai-visibility-platform-production-4b8b.up.railway.app';
+
 const getBaseUrl = (): string => {
   const rawUrl = import.meta.env.VITE_API_URL || '';
   const cleanUrl = rawUrl.trim().replace(/\/+$/, '');
-  return cleanUrl ? `${cleanUrl}/api/v1` : '/api/v1';
+  if (cleanUrl) return `${cleanUrl}/api/v1`;
+
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return '/api/v1';
+    }
+  }
+  return `${PRODUCTION_RAILWAY_URL}/api/v1`;
 };
 
 const BASE_URL = getBaseUrl();
