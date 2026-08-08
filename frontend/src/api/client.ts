@@ -69,6 +69,19 @@ export const api = {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Failed to create project' }));
+      if (res.status === 409) {
+        try {
+          const listRes = await fetch(`${BASE_URL}/projects`);
+          if (listRes.ok) {
+            const projects: Project[] = await listRes.json();
+            const host = url.replace(/https?:\/\//i, '').replace(/\/.*$/, '').replace('www.', '').toLowerCase();
+            const match = projects.find(p => p.domain.toLowerCase() === host || host.includes(p.domain.toLowerCase()));
+            if (match) return match;
+          }
+        } catch {
+          // Fall through
+        }
+      }
       throw new Error(err.detail || 'Failed to create project');
     }
     return res.json();
