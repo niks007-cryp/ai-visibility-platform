@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
+import { MobileHeader } from './components/MobileHeader';
 import { Footer } from './components/Footer';
 import { LandingPage } from './pages/LandingPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -12,7 +13,8 @@ import { ProjectsPage } from './pages/ProjectsPage';
 export const App: React.FC = () => {
   return (
     <Router>
-      <div className="min-h-screen flex bg-slate-950 text-slate-100 selection:bg-cyan-500 selection:text-white overflow-x-hidden">
+      <div className="min-h-screen flex flex-col md:flex-row bg-slate-950 text-slate-100 selection:bg-cyan-500 selection:text-white overflow-x-hidden">
+        <MobileHeader />
         <Sidebar />
         <div className="flex-1 flex flex-col justify-between min-w-0">
           <main className="flex-1">

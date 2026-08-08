@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Building2, Sparkles, ArrowRight, Loader2, AlertCircle, Plus, Search } from 'lucide-react';
+import { Building2, Sparkles, ArrowRight, Loader2, AlertCircle, Plus, Search, CheckCircle2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { api, Project } from '../api/client';
 
 export const ProjectsPage: React.FC = () => {
@@ -55,19 +56,24 @@ export const ProjectsPage: React.FC = () => {
   );
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12 space-y-8">
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8"
+    >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold mb-2">
-            <Sparkles className="w-3.5 h-3.5" /> Project Audit Portfolio
+            <Sparkles className="w-3.5 h-3.5" /> Domain Portfolio
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">Your Target Domains</h1>
-          <p className="text-slate-400 text-sm">View, retrieve, and re-audit your registered domain projects.</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Your Target Domains</h1>
+          <p className="text-slate-400 text-xs sm:text-sm">Manage, retrieve, and re-audit your registered business domain projects.</p>
         </div>
 
         <Link
           to="/new"
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold px-5 py-3 rounded-xl text-sm transition-all shadow-lg shadow-cyan-500/20"
+          className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold px-5 py-3 rounded-xl text-sm transition-all shadow-lg shadow-cyan-500/20 active:scale-95"
         >
           <Plus className="w-4 h-4" /> New Audit Project
         </Link>
@@ -118,19 +124,20 @@ export const ProjectsPage: React.FC = () => {
       ) : (
         <div className="grid gap-4">
           {filtered.map((proj) => (
-            <div
+            <motion.div
               key={proj.id}
-              className="glass-card p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-slate-700 transition-all"
+              whileHover={{ scale: 1.005 }}
+              className="glass-card p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 border border-slate-800 hover:border-slate-700 transition-all"
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <h3 className="text-lg font-bold text-white">{proj.domain}</h3>
-                  <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono">
-                    #{proj.id.slice(0, 8)}
+                  <span className="text-xs px-2.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Active
                   </span>
                 </div>
                 <p className="text-xs text-slate-400">
-                  Name: {proj.name} | Registered: {new Date(proj.created_at).toLocaleDateString()}
+                  Name: {proj.name} &bull; Registered: {new Date(proj.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
                 </p>
               </div>
 
@@ -156,10 +163,10 @@ export const ProjectsPage: React.FC = () => {
                   <Sparkles className="w-3.5 h-3.5" /> Re-Audit
                 </button>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };

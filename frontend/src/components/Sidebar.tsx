@@ -14,7 +14,7 @@ export const Sidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 bg-slate-950 border-r border-slate-900 flex flex-col justify-between h-screen sticky top-0 shrink-0 select-none">
+    <aside className="hidden md:flex w-64 bg-slate-950 border-r border-slate-900 flex-col justify-between h-screen sticky top-0 shrink-0 select-none">
       <div className="p-6 space-y-8">
         {/* Brand Logo */}
         <Link to="/dashboard" className="flex items-center gap-3 group">

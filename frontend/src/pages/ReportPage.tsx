@@ -94,7 +94,7 @@ export const ReportPage: React.FC = () => {
           <div className="space-y-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Target Website Domain</span>
             <h1 className="text-3xl font-extrabold text-white tracking-tight">{report.target_domain}</h1>
-            <p className="text-xs text-slate-400">Project: <span className="text-white font-medium">{report.project_name}</span> &bull; Audit Reference: <span className="font-mono text-slate-300">#{report.job_id.slice(0, 8)}</span></p>
+            <p className="text-xs text-slate-400">Project: <span className="text-white font-medium">{report.project_name}</span> &bull; Verified: <span className="text-slate-300 font-medium">Deterministic Engine Analysis</span></p>
           </div>
 
           <div>
@@ -266,32 +266,6 @@ export const ReportPage: React.FC = () => {
             <p className="text-slate-300 truncate">{report.prompt}</p>
           </div>
         </div>
-      </div>
-
-      {/* Collapsible Raw AI Response */}
-      <div className="glass-card rounded-3xl overflow-hidden">
-        <button
-          onClick={() => setShowRawText(!showRawText)}
-          className="w-full p-6 flex items-center justify-between text-left hover:bg-slate-900/50 transition-colors"
-        >
-          <div className="flex items-center gap-2 text-slate-300 font-semibold text-sm">
-            <FileText className="w-4 h-4 text-cyan-400" />
-            <span>Raw Provider Output Text</span>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span>{showRawText ? 'Hide' : 'View Complete Raw Output'}</span>
-            {showRawText ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </div>
-        </button>
-
-        {showRawText && (
-          <div className="p-6 pt-0 border-t border-slate-800/80">
-            <pre className="bg-slate-950 p-4 rounded-xl text-slate-300 text-xs font-mono whitespace-pre-wrap leading-relaxed overflow-x-auto border border-slate-900">
-              {report.raw_response}
-            </pre>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle2, AlertCircle, RefreshCw, Sparkles, ShieldCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { api, AnalysisJob } from '../api/client';
 
 export const AnalysisProgressPage: React.FC = () => {
@@ -61,19 +62,22 @@ export const AnalysisProgressPage: React.FC = () => {
     });
   };
 
-  const shortRef = jobId ? `#${jobId.slice(0, 8)}` : '';
-
   return (
-    <div className="max-w-xl mx-auto px-6 py-16 text-center space-y-8">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.3 }}
+      className="max-w-xl mx-auto px-4 sm:px-6 py-12 sm:py-16 text-center space-y-8"
+    >
       <div className="space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold">
-          <Sparkles className="w-3.5 h-3.5" /> Deterministic Pipeline Active
+          <Sparkles className="w-3.5 h-3.5" /> Deterministic AI Engine
         </div>
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">Analyzing AI Visibility...</h1>
-        <p className="text-slate-400 text-sm">Evaluating brand recommendations across AI search engines.</p>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Analyzing AI Visibility...</h1>
+        <p className="text-slate-400 text-xs sm:text-sm">Evaluating brand recommendations across target AI search engines.</p>
       </div>
 
-      <div className="glass-card p-8 rounded-3xl space-y-8 text-left shadow-2xl border border-slate-800">
+      <div className="glass-card p-6 sm:p-8 rounded-3xl space-y-8 text-left shadow-2xl border border-slate-800">
         {error ? (
           <div className="space-y-4">
             <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm p-4 rounded-xl">
@@ -96,9 +100,10 @@ export const AnalysisProgressPage: React.FC = () => {
                 <span>{step === 1 ? '25%' : step === 2 ? '50%' : step === 3 ? '85%' : '100%'}</span>
               </div>
               <div className="w-full h-2.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                <div
-                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 transition-all duration-500 rounded-full"
-                  style={{ width: step === 1 ? '25%' : step === 2 ? '50%' : step === 3 ? '85%' : '100%' }}
+                <motion.div
+                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full"
+                  animate={{ width: step === 1 ? '25%' : step === 2 ? '50%' : step === 3 ? '85%' : '100%' }}
+                  transition={{ duration: 0.5 }}
                 />
               </div>
             </div>
@@ -136,9 +141,9 @@ export const AnalysisProgressPage: React.FC = () => {
 
       <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
         <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-        <span>Audit Reference {shortRef}</span>
+        <span>Deterministic AI Evaluation Pipeline</span>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
