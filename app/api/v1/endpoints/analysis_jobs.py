@@ -1,4 +1,5 @@
 import uuid
+import asyncio
 from typing import List
 from fastapi import APIRouter, Depends, status, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,7 +8,9 @@ from app.core.database import get_db, AsyncSessionLocal
 from app.schemas.analysis_job import AnalysisJobResponse
 from app.services.analysis_job_service import analysis_job_service, AnalysisJobService
 
-router = APIRouter()
+import logging
+
+logger = logging.getLogger("app.api.analysis_jobs")
 
 
 async def _bg_execute_job(job_id: uuid.UUID):
@@ -15,8 +18,11 @@ async def _bg_execute_job(job_id: uuid.UUID):
         try:
             await analysis_job_service.execute_job(session, job_id=job_id)
             await session.commit()
-        except Exception:
+        except Exception as exc:
             await session.rollback()
+
+
+router = APIRouter()
 
 
 @router.post(
@@ -68,7 +74,7 @@ async def create_job(
     service: AnalysisJobService = Depends(lambda: analysis_job_service)
 ) -> AnalysisJobResponse:
     job = await service.create_job(db, project_id=project_id)
-    background_tasks.add_task(_bg_execute_job, job.id)
+    asyncio.create_task(_bg_execute_job(job.id))
     return AnalysisJobResponse.model_validate(job)
 
 
