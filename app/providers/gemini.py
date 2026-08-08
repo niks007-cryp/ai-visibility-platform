@@ -85,8 +85,9 @@ class GeminiProvider(BaseProvider):
             candidate_models = [
                 _WORKING_MODEL_NAME,
                 self._model_name,
-                "gemini-1.5-flash",
                 "gemini-2.0-flash",
+                "gemini-1.5-flash",
+                "gemini-1.5-pro",
                 "gemini-pro"
             ]
             seen_models = set()
