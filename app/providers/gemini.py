@@ -84,7 +84,7 @@ class GeminiProvider(BaseProvider):
                     contents=formatted_prompt
                 )
 
-            response = await asyncio.wait_for(_call_gemini_api(), timeout=15.0)
+            response = await asyncio.wait_for(_call_gemini_api(), timeout=20.0)
 
             raw_text = getattr(response, "text", None)
             if not raw_text:
@@ -112,7 +112,7 @@ class GeminiProvider(BaseProvider):
                 target_model,
             )
             raise GeminiAPIException(
-                "Request to Gemini 2.5 Flash timed out after 15 seconds.",
+                "Request to Gemini 2.5 Flash timed out after 20 seconds.",
                 is_retryable=True,
             )
 

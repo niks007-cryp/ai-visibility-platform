@@ -217,10 +217,15 @@ class AnalysisJobService:
         active_prompts = self.prompts.list_active_prompts()
         primary_result: Optional[ProviderResult] = None
 
+        # ── Provider diagnostic: always visible in Railway logs ───────────────
+        gemini_key_present = bool(settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip())
         logger.info(
-            "event=job_execution_started job_id=%s domain=%s prompts_count=%d",
-            job_id, project.domain, len(active_prompts)
+            "event=job_execution_started job_id=%s domain=%s prompts_count=%d "
+            "GEMINI_API_KEY_PRESENT=%s SELECTED_PROVIDER=%s",
+            job_id, project.domain, len(active_prompts),
+            gemini_key_present, target_provider.name,
         )
+        # ─────────────────────────────────────────────────────────────────────
 
         async def _run_analysis():
             nonlocal primary_result
@@ -230,11 +235,7 @@ class AnalysisJobService:
                 p_start = time.perf_counter()
                 logger.info("event=provider_call_started job_id=%s prompt_id=%s", job_id, p_template.id)
 
-                try:
-                    output = await target_provider.query(prompt=formatted_prompt, domain=project.domain)
-                except Exception as p_err:
-                    logger.warning("event=provider_query_failed error=%s fallback_to_mock job_id=%s", p_err, job_id)
-                    output = await mock_provider.query(prompt=formatted_prompt, domain=project.domain)
+                output = await target_provider.query(prompt=formatted_prompt, domain=project.domain)
 
                 p_elapsed = (time.perf_counter() - p_start) * 1000
                 logger.info(
@@ -271,10 +272,11 @@ class AnalysisJobService:
                 db_elapsed = (time.perf_counter() - db_start) * 1000
                 logger.info("event=database_persistence_completed job_id=%s elapsed_ms=%.2f", job_id, db_elapsed)
 
+        # Outer timeout: 4 prompts × 20s each + DB overhead = 90s safe ceiling
         try:
-            await asyncio.wait_for(_run_analysis(), timeout=25.0)
+            await asyncio.wait_for(_run_analysis(), timeout=90.0)
         except (Exception, asyncio.TimeoutError) as exc:
-            err_msg = "Analysis execution timed out after 25s." if isinstance(exc, asyncio.TimeoutError) else str(exc)
+            err_msg = "Analysis execution timed out after 90s." if isinstance(exc, asyncio.TimeoutError) else str(exc)
             logger.error("event=job_execution_failed job_id=%s error=%s", job_id, err_msg)
             await self.transition_job_status(
                 db,

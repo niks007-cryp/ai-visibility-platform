@@ -33,6 +33,22 @@ async def lifespan(app: FastAPI):
     # Startup Configuration Fail-Fast Guard
     validate_production_configuration()
 
+    # ── Gemini Provider Diagnostic (safe — never logs key value) ──────────────
+    gemini_key_present = bool(settings.GEMINI_API_KEY and settings.GEMINI_API_KEY.strip())
+    gemini_provider_name = "gemini" if gemini_key_present else "mock"
+    logger.info(
+        "GEMINI_API_KEY_PRESENT=%s GEMINI_PROVIDER=%s GEMINI_MODEL=%s",
+        gemini_key_present,
+        gemini_provider_name,
+        settings.GEMINI_MODEL,
+    )
+    if not gemini_key_present:
+        logger.warning(
+            "event=gemini_not_configured reason=GEMINI_API_KEY_missing_or_empty "
+            "impact=all_analyses_will_fail action=set_GEMINI_API_KEY_in_Railway_variables"
+        )
+    # ──────────────────────────────────────────────────────────────────────────
+
     yield
     logger.info("event=shutdown service=%s", settings.PROJECT_NAME)
 
