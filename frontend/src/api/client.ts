@@ -109,6 +109,9 @@ export const api = {
           const jobs = await this.listJobsForProject(projectId);
           const active = jobs.find(j => j.status === 'Pending' || j.status === 'Running' || j.status === 'Queued');
           if (active) return active;
+
+          const completed = jobs.find(j => j.status === 'Completed');
+          if (completed) return completed;
           if (jobs.length > 0) return jobs[0];
         } catch {
           // Fall through

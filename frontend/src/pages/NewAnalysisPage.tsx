@@ -35,8 +35,12 @@ export const NewAnalysisPage: React.FC = () => {
       // 3. Trigger job
       const job = await api.triggerJob(project.id);
 
-      // 4. Navigate to Progress page
-      navigate(`/analysis/${job.id}`);
+      // 4. Navigate to Progress page or Report page directly if already completed
+      if ((job.status || '').toString().toLowerCase() === 'completed') {
+        navigate(`/report/${job.id}`);
+      } else {
+        navigate(`/analysis/${job.id}`);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to start analysis audit. Please try again.');
       setIsLoading(false);

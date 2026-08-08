@@ -2,6 +2,7 @@ import uuid
 import logging
 import time
 import asyncio
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -76,6 +77,24 @@ class AnalysisJobService:
             project_id=project_id,
             for_update=True
         )
+        if active_job:
+            now = datetime.now(timezone.utc)
+            created_at = active_job.created_at
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+
+            if (now - created_at).total_seconds() > 60:
+                logger.warning(
+                    f"event=analysis_stale_job_cleaned project_id={project_id} stale_job_id={active_job.id}"
+                )
+                await self.job_repo.update_status(
+                    db,
+                    db_obj=active_job,
+                    new_status=AnalysisJobStatus.FAILED,
+                    error_message="Job timed out or abandoned"
+                )
+                active_job = None
+
         if active_job:
             logger.warning(
                 f"event=analysis_create_conflict reason=concurrent_active_job project_id={project_id} active_job_id={active_job.id}"

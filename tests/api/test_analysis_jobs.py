@@ -3,6 +3,7 @@ import uuid
 from httpx import AsyncClient
 from app.models.analysis_job import AnalysisJobStatus
 from app.services.analysis_job_service import analysis_job_service
+from app.repositories.analysis_job_repository import analysis_job_repository
 
 
 @pytest.mark.asyncio
@@ -32,14 +33,14 @@ async def test_create_job_invalid_project(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_create_job_concurrent_conflict(async_client: AsyncClient):
+async def test_create_job_concurrent_conflict(async_client: AsyncClient, db_session):
     """Test creating a second job for a project while another is active returns 409 Conflict."""
     proj_res = await async_client.post("/api/v1/projects", json={"name": "Concurrent Co", "url": "https://concurrent.com"})
-    project_id = proj_res.json()["id"]
+    project_id = uuid.UUID(proj_res.json()["id"])
 
-    # First job
-    job1_res = await async_client.post(f"/api/v1/projects/{project_id}/jobs")
-    assert job1_res.status_code == 201
+    # Create explicit active PENDING job in DB
+    await analysis_job_repository.create(db_session, project_id=project_id)
+    await db_session.commit()
 
     # Second job (concurrent conflict)
     job2_res = await async_client.post(f"/api/v1/projects/{project_id}/jobs")
